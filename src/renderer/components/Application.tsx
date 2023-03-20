@@ -138,6 +138,16 @@ const Application: React.FC = () => {
           <button onClick={toggleTheme}>
             {darkTheme ? 'Light Theme' : 'Dark Theme'}
           </button>
+
+          <button onClick={(e) => {
+            window.electron.invoke('hello-world-async', {
+              data: 'name',
+            }).then((res) => {
+              console.log(res);
+            });
+          }}>
+            send
+          </button>
         </div>
       </div>
     </div>

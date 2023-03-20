@@ -1,4 +1,5 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
+import { lstat } from 'fs/promises';
 import { createAppWindow } from './appWindow';
 
 /** Handle creating/removing shortcuts on Windows when installing/uninstalling. */
@@ -40,6 +41,19 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+ipcMain.on('hello-world', (event, arg) => {
+  console.log(arg); // prints "ping"
+  event.reply('hello-world-reply', 'pong');
+});
+
+ipcMain.handle('hello-world-async', async (event, arg) => {
+  lstat('/Users/parkhansol/').then((res) => {
+    console.log(res);
+  })
+  console.log(arg); // prints "ping"
+  return 'pong';
 });
 
 /**

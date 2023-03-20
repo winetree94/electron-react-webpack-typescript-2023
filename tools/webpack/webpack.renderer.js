@@ -19,4 +19,5 @@ module.exports = {
    * Dev tools: unable to load source maps over custom protocol
    */
   devtool: 'inline-source-map',
+  target: ['web', 'electron-renderer'],
 };

@@ -13,4 +13,5 @@ module.exports = {
     alias: require('./webpack.aliases'),
   },
   stats: 'minimal',
+  target: 'electron-main'
 };

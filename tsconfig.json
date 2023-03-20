@@ -21,7 +21,8 @@
       "@renderer/*": ["./src/renderer/*"],
       "@src/*": ["./src/*"],
       "@misc/*": ["./misc/*"],
-    }
+    },
+    "typeRoots": ["./node_modules/@types", "./src/typings"]
   },
   "include": ["src/**/*", "tools/**/*"]
 }
