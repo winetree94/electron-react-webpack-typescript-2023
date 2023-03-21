@@ -1,7 +1,7 @@
 declare global {
   interface Window {
     electron: {
-      invoke: <T>(channel: string, data?: T) => Promise<T>;
+      invoke: <T, R>(channel: string, data?: T) => Promise<R>;
       send: <T>(channel: string, data?: T) => void;
     };
   }

@@ -1,6 +1,8 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { lstat } from 'fs/promises';
+import { chunk } from 'lodash';
 import { createAppWindow } from './appWindow';
+import { getAllFilePath, search } from './search';
 
 /** Handle creating/removing shortcuts on Windows when installing/uninstalling. */
 if (require('electron-squirrel-startup')) {
@@ -54,6 +56,44 @@ ipcMain.handle('hello-world-async', async (event, arg) => {
   })
   console.log(arg); // prints "ping"
   return 'pong';
+});
+
+ipcMain.handle('search-keywords', async (event, data) => {
+  console.log('start');
+  const pathes = await getAllFilePath(data.path, data.ignorePatterns);
+
+  /**
+   * Multicore processing
+   */
+  const chunks = chunk(pathes, 300);
+
+  function yieldToMain () {
+    return new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+  }
+
+  const result: Record<string, number> = {};
+
+  const concurrent = 10;
+
+  while (chunks.length) {
+    console.log('next work');
+    const nextChunks = chunks.splice(0, concurrent);
+    await Promise.all(
+      nextChunks.map((chunk) => {
+        return yieldToMain()
+          .then(() => search(chunk, data.keywords, data.extensions))
+          .then(res => {
+            Object.keys(res).forEach((key) => {
+              result[key] = (result[key] || 0) + res[key];
+            });
+          });
+      })
+    );
+  }
+
+  return result;
 });
 
 /**

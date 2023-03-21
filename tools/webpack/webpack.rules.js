@@ -28,7 +28,7 @@ module.exports = [
   {
     // CSS Loader
     test: /\.css$/,
-    use: [{ loader: 'style-loader' }, { loader: 'css-loader' }],
+    use: [{ loader: 'style-loader' }, { loader: 'css-loader' }, { loader: 'postcss-loader' }],
   },
   {
     // SCSS (SASS) Loader
@@ -37,6 +37,7 @@ module.exports = [
       { loader: 'style-loader' },
       { loader: 'css-loader' },
       { loader: 'sass-loader' },
+      { loader: 'postcss-loader' },
     ],
   },
   {

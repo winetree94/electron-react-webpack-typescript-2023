@@ -1,16 +1,14 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import WindowFrame from '@misc/window/components/WindowFrame';
-import Application from '@components/Application';
-
-// Say something
-console.log('[ERWT] : Renderer execution started');
+import Settings from './components/Application';
+import "tailwindcss/tailwind.css";
+import './appRenderer.css';
 
 // Application to Render
 const app = (
-  <WindowFrame title='ERWT Boilerplate' platform='windows'>
-    <Application />
-  </WindowFrame>
+  <React.StrictMode>
+    <Settings></Settings>
+  </React.StrictMode>
 );
 
 // Render application in DOM

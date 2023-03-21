@@ -1,6 +1,6 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import path from 'path';
-import { registerTitlebarIpc } from '@misc/window/titlebarIPC';
+import { menus } from './menu';
 
 // Electron Forge automatically creates these entry points
 declare const APP_WINDOW_WEBPACK_ENTRY: string;
@@ -15,13 +15,11 @@ let appWindow: BrowserWindow;
 export function createAppWindow(): BrowserWindow {
   // Create new window instance
   appWindow = new BrowserWindow({
-    width: 800,
+    width: 1200,
     height: 600,
-    backgroundColor: '#202020',
+    backgroundColor: 'white',
     show: false,
-    autoHideMenuBar: true,
-    frame: false,
-    titleBarStyle: 'hidden',
+    frame: true,
     icon: path.resolve('assets/images/appIcon.ico'),
     webPreferences: {
       nodeIntegration: false,
@@ -39,8 +37,7 @@ export function createAppWindow(): BrowserWindow {
   // Show window when its ready to
   appWindow.on('ready-to-show', () => appWindow.show());
 
-  // Register Inter Process Communication for main process
-  registerMainIPC();
+  appWindow.webContents.openDevTools();
 
   // Close all windows when main window is closed
   appWindow.on('close', () => {
@@ -51,13 +48,4 @@ export function createAppWindow(): BrowserWindow {
   return appWindow;
 }
 
-/**
- * Register Inter Process Communication
- */
-function registerMainIPC() {
-  /**
-   * Here you can assign IPC related codes for the application window
-   * to Communicate asynchronously from the main process to renderer processes.
-   */
-  registerTitlebarIpc(appWindow);
-}
+Menu.setApplicationMenu(menus);
