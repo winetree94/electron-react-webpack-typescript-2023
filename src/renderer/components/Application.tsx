@@ -39,11 +39,8 @@ const Application = () => {
   const [extensions, setExtensions] = useState(['ts', 'html']);
   const [usageOutput, setUsageOutput] = useState('');
   const [duplicationOutput, setDuplicationOutput] = useState('');
-  const [duplicationInputs, setDuplicationInputs] = useState<{
-    text: string;
-    keys: string[];
-    migrateKey: string;
-  }[]>([]);
+
+  const [changeModel, setChangeModel] = useState<string>('');
 
   const [langs, setLangs] = useState<{ json: string; }[]>([{
     json: dedent`{
@@ -181,15 +178,6 @@ const Application = () => {
           2
         )
       );
-
-      setDuplicationInputs(Object.entries(sortedDuplications).filter(([, keys]) => keys.length > 1).map(([text, keys]) => {
-        return {
-          text: text,
-          keys: keys,
-          migrateKey: '',
-        }
-      }))
-
     } catch (error) {
       console.error(error);
       console.log('오류 발생!!');
@@ -198,22 +186,14 @@ const Application = () => {
     }
   }
 
-  const runChange = async () => {
-    const models = duplicationInputs
-      .filter((input) => input.keys.length && input.migrateKey.trim())
-      .map((input) => ({
-        keys: input.keys,
-        targetKey: input.migrateKey,
-      }));
-
-    if (!models.length) {
+  const runChange2 = async () => {
+    const models = JSON.parse(changeModel);
+    if (!Object.entries(models).length) {
       return;
     }
-
     setChangeLoading(true);
-
     try {
-      await window.electron.invoke('change-key', {
+      await window.electron.invoke('change-key2', {
         path: path,
         extensions: extensions.map((ext) => `.${ext}`),
         ignorePatterns: ignorePatterns,
@@ -224,7 +204,7 @@ const Application = () => {
     } finally {
       setChangeLoading(false);
     }
-  };
+  }
 
 
   return (
@@ -319,52 +299,28 @@ const Application = () => {
         />
       </TabPanel>
       <TabPanel value={currentTab} index={3}>
-        이곳은 번역 데이터가 모두 일치하는 키의 목록을 출력합니다.
-        <br />
-        배열에 해당하는 데이터가 많다면 중복으로 의심할 수 있습니다.
-        <br />
-        중복 결과가 많은 순서대로 정렬됩니다.
+        번역 데이터 전환기 (데이터 기반)
         <br />
         <Button
           variant="contained"
           disabled={changeLoading}
           style={{ marginTop: '10px' }}
-          onClick={runChange}
+          onClick={runChange2}
         >
-          변경 실행
+          {changeLoading ? (
+              <><CircularProgress size={30} /> 대충 만들어서 느려요..</>
+            ) :
+              'GO'
+            }
         </Button>
         <br />
         입력하지 않은 항목은 변경되지 않습니다.
-
         <div>
-          {duplicationInputs.map((input, index) => {
-            return (
-              <Accordion key={input.text} TransitionProps={{ unmountOnExit: true }} >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  aria-controls="panel1a-content"
-                  id="panel1a-header"
-                >
-                  <Typography>{input.text}{input.migrateKey ? ' / Done' : ''}</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Typography>
-                  {input.keys.map((key) => (
-                    <React.Fragment key={key}>{key} <br /></React.Fragment>
-                  ))}
-                  </Typography>
-                  <TextField
-                    value={input.migrateKey}
-                    onChange={(e) => {
-                      const newInputs = [...duplicationInputs];
-                      newInputs[index] = { ...newInputs[index], migrateKey: e.target.value };
-                      setDuplicationInputs(newInputs);
-                    }}
-                  />
-                </AccordionDetails>
-              </Accordion>
-            )
-          })}
+          <ReactCodeMirror
+            value={changeModel}
+            extensions={[json()]}
+            onChange={setChangeModel}
+          />
         </div>
       </TabPanel>
     </div>

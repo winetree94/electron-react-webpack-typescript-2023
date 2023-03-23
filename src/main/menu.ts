@@ -2,30 +2,10 @@ import { Menu } from "electron";
 
 export const menus = Menu.buildFromTemplate([
   {
-    label: 'Edit',
-    submenu: [
-      {
-        label: 'Settings',
-        click: () => {
-          console.log('settings');
-        }
-      },
-      { role: 'undo' },
-      { role: 'redo' },
-      { type: 'separator' },
-      { role: 'cut' },
-      { role: 'copy' },
-      { role: 'paste' },
-      { role: 'delete' },
-    ]
-  },
-  {
     label: 'View',
     submenu: [
       { role: 'reload' },
-      { type: 'separator' },
-      { type: 'separator' },
-      { role: 'togglefullscreen' }
+      { role: 'toggleDevTools' }
     ]
   },
   {
@@ -36,12 +16,15 @@ export const menus = Menu.buildFromTemplate([
     ]
   },
   {
-    role: 'help',
+    label: "Edit",
     submenu: [
-      {
-        label: 'Learn More',
-        click() { require('electron').shell.openExternal('https://electronjs.org') }
-      }
+      { label: "Undo", accelerator: "CmdOrCtrl+Z", role: 'undo' },
+      { label: "Redo", accelerator: "Shift+CmdOrCtrl+Z", role: 'redo' },
+      { type: "separator" },
+      { label: "Cut", accelerator: "CmdOrCtrl+X", role: 'cut' },
+      { label: "Copy", accelerator: "CmdOrCtrl+C", role: 'copy' },
+      { label: "Paste", accelerator: "CmdOrCtrl+V", role: 'paste' },
+      { label: "Select All", accelerator: "CmdOrCtrl+A", role: 'selectAll' }
     ]
   }
 ]);

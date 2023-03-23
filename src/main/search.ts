@@ -54,20 +54,16 @@ export interface ChangeModel {
   targetKey: string;
 }
 
-export const change = async (
+export const change2 = async (
   pathes: string[],
-  changes: ChangeModel[],
+  changes: Record<string, string>
 ) => {
   return Promise.all(pathes.map(async (filePath) => {
     const stream = await readFile(filePath, 'utf-8');
-
-    const patched = changes.reduce((acc, change) => {
-      return change.keys.reduce((result, key) => {
-        const regex = new RegExp(key, 'g');
-        return result.replace(regex, change.targetKey);
-      }, acc);
+    const patched = Object.entries(changes).reduce((acc, [key, targetKey]) => {
+      const regex = new RegExp(key, 'g');
+      return acc.replace(regex, targetKey);
     }, stream);
-
     if (stream === patched) {
       return;
     }

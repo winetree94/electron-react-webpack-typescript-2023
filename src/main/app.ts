@@ -83,7 +83,7 @@ ipcMain.handle('search-keywords', async (event, data) => {
   return result;
 });
 
-ipcMain.handle('change-key', async (event, data) => {
+ipcMain.handle('change-key2', async (event, data) => {
   const pathes: string[] = await new Promise((resolve) => {
     const worker = new Worker(new URL('./search-worker.ts', import.meta.url), {
       workerData: {
@@ -101,7 +101,7 @@ ipcMain.handle('change-key', async (event, data) => {
   const chunks = chunk(pathes, 300);
 
   await Promise.all(chunks.map((chunk) => new Promise<void>(resolve => {
-    const worker = new Worker(new URL('./change-worker.ts', import.meta.url), {
+    const worker = new Worker(new URL('./change-worker2.ts', import.meta.url), {
       workerData: {
         pathes: chunk,
         changes: data.changes,

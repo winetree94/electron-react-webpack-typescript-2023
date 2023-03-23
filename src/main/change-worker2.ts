@@ -1,7 +1,7 @@
 import { parentPort, workerData } from 'worker_threads';
-import { change } from './search';
+import { change2 } from './search';
 
-change(
+change2(
   workerData.pathes,
   workerData.changes,
 ).then((res) => {
