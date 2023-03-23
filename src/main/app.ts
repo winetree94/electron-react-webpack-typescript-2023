@@ -1,8 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { lstat } from 'fs/promises';
 import { chunk } from 'lodash';
 import { createAppWindow } from './appWindow';
-import { getAllFilePath, search } from './search';
+import { Worker } from 'worker_threads';
 
 /** Handle creating/removing shortcuts on Windows when installing/uninstalling. */
 if (require('electron-squirrel-startup')) {
@@ -45,58 +44,72 @@ app.on('window-all-closed', () => {
   }
 });
 
-ipcMain.on('hello-world', (event, arg) => {
-  console.log(arg); // prints "ping"
-  event.reply('hello-world-reply', 'pong');
-});
-
-ipcMain.handle('hello-world-async', async (event, arg) => {
-  lstat('/Users/parkhansol/').then((res) => {
-    console.log(res);
-  })
-  console.log(arg); // prints "ping"
-  return 'pong';
-});
-
 ipcMain.handle('search-keywords', async (event, data) => {
-  console.log('start');
-  const pathes = await getAllFilePath(data.path, data.ignorePatterns);
-
-  /**
-   * Multicore processing
-   */
-  const chunks = chunk(pathes, 300);
-
-  function yieldToMain () {
-    return new Promise(resolve => {
-      setTimeout(resolve, 0);
+  // indexing
+  const pathes: string[] = await new Promise((resolve) => {
+    const worker = new Worker(new URL('./search-worker.ts', import.meta.url), {
+      workerData: {
+        path: data.path,
+        extensions: data.extensions,
+        ignorePatterns: data.ignorePatterns,
+      }
     });
-  }
+    worker.addListener('message', (message) => {
+      resolve(message);
+      worker.terminate();
+    });
+  });
 
   const result: Record<string, number> = {};
+  const chunks = chunk(pathes, 300);
 
-  const concurrent = 10;
-
-  while (chunks.length) {
-    console.log('next work');
-    const nextChunks = chunks.splice(0, concurrent);
-    await Promise.all(
-      nextChunks.map((chunk) => {
-        return yieldToMain()
-          .then(() => search(chunk, data.keywords, data.extensions))
-          .then(res => {
-            Object.keys(res).forEach((key) => {
-              result[key] = (result[key] || 0) + res[key];
-            });
-          });
-      })
-    );
-  }
+  // searching
+  await Promise.all(chunks.map((chunk) => new Promise<void>(resolve => {
+    const worker = new Worker(new URL('./find-worker.ts', import.meta.url), {
+      workerData: {
+        pathes: chunk,
+        keywords: data.keywords,
+      }
+    });
+    worker.addListener('message', (message) => {
+      Object.keys(message).forEach((key) => {
+        result[key] = (result[key] || 0) + message[key];
+      });
+      worker.terminate();
+      resolve();
+    });
+  })));
 
   return result;
 });
 
-/**
- * In this file you can include the rest of your app's specific main process code.
- * You can also put them in separate files and import them here.
- */
+ipcMain.handle('change-key', async (event, data) => {
+  const pathes: string[] = await new Promise((resolve) => {
+    const worker = new Worker(new URL('./search-worker.ts', import.meta.url), {
+      workerData: {
+        path: data.path,
+        extensions: data.extensions,
+        ignorePatterns: data.ignorePatterns,
+      }
+    });
+    worker.addListener('message', (message) => {
+      resolve(message);
+      worker.terminate();
+    });
+  });
+
+  const chunks = chunk(pathes, 300);
+
+  await Promise.all(chunks.map((chunk) => new Promise<void>(resolve => {
+    const worker = new Worker(new URL('./change-worker.ts', import.meta.url), {
+      workerData: {
+        pathes: chunk,
+        changes: data.changes,
+      }
+    });
+    worker.addListener('message', (message) => {
+      worker.terminate();
+      resolve();
+    });
+  })));
+});

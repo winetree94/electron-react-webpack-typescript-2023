@@ -1,6 +1,6 @@
 {
   "name": "electron-react-typescript-webpack-2023",
-  "productName": "ERWT Boilerplate",
+  "productName": "Swit Translate Tool",
   "version": "7.3.1",
   "description": "Custom boilerplate for writing Desktop Applications using Electron, React, Webpack, TypeScript in 2023",
   "homepage": "http://localhost:3000/app_window",
@@ -101,6 +101,9 @@
     "postcss-loader": "^7.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.9.0"
+    "react-router-dom": "^6.9.0",
+    "threads": "^1.7.0",
+    "threads-plugin": "^1.4.0",
+    "webpack2-externals-plugin": "^1.0.0"
   }
 }

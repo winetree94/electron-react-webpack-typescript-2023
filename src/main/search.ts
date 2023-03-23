@@ -1,8 +1,9 @@
-import { readdir, readFile, stat } from "fs/promises";
+import { readdir, readFile, stat, writeFile } from "fs/promises";
 import { extname } from "path";
 
 export const getAllFilePath = async (
   path: string,
+  extensions: string[],
   ignorePatterns?: string[],
   result?: string[],
 ): Promise<string[]> => {
@@ -15,9 +16,13 @@ export const getAllFilePath = async (
     const isDirectory = fileStat.isDirectory();
     const filePath = `${path}/${fileName}`;
     if (isDirectory) {
-      return getAllFilePath(`${path}/${fileName}`, ignorePatterns, finalResult);
+      return getAllFilePath(`${path}/${fileName}`, extensions, ignorePatterns, finalResult);
     }
     if (ignorePatterns?.some((pattern) => filePath.includes(pattern))) {
+      return;
+    }
+    const ext = extname(filePath);
+    if (!extensions.includes(ext)) {
       return;
     }
     finalResult.push(filePath);
@@ -29,17 +34,10 @@ export const getAllFilePath = async (
 export const search = async (
   pathes: string[],
   keywords: string[],
-  extensions: string[],
-  progressCallback?: (progress: number) => void,
 ): Promise<Record<string, number>> => {
-  progressCallback?.(0);
   const result: Record<string, number> = {};
 
   await Promise.all(pathes.map(async (filePath) => {
-    const ext = extname(filePath);
-    if (!extensions.includes(ext)) {
-      return;
-    }
     const stream = await readFile(filePath, 'utf-8');
     keywords.forEach((keyword) => {
       const regex = new RegExp(keyword, 'g');
@@ -49,4 +47,30 @@ export const search = async (
   }));
 
   return result;
+}
+
+export interface ChangeModel {
+  keys: string[];
+  targetKey: string;
+}
+
+export const change = async (
+  pathes: string[],
+  changes: ChangeModel[],
+) => {
+  return Promise.all(pathes.map(async (filePath) => {
+    const stream = await readFile(filePath, 'utf-8');
+
+    const patched = changes.reduce((acc, change) => {
+      return change.keys.reduce((result, key) => {
+        const regex = new RegExp(key, 'g');
+        return result.replace(regex, change.targetKey);
+      }, acc);
+    }, stream);
+
+    if (stream === patched) {
+      return;
+    }
+    await writeFile(filePath, patched, { encoding: 'utf-8' });
+  }));
 }

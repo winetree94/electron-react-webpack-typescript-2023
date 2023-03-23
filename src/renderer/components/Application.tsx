@@ -1,10 +1,11 @@
-import { Box, Button, CircularProgress, FormLabel, Tab, Tabs, TextField } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, CircularProgress, FormLabel, Paper, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography } from '@mui/material';
 import { MuiChipsInput } from 'mui-chips-input';
 import React, { useState } from 'react';
 import './Application.scss';
 import ReactCodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import dedent from "dedent";
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 function TabPanel(props: any) {
   const { children, value, index, ...other } = props;
@@ -27,7 +28,8 @@ function TabPanel(props: any) {
 
 const Application = () => {
   const [currentTab, setCurrentTab] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [seachLoading, setSearchLoading] = useState(false);
+  const [changeLoading, setChangeLoading] = useState(false);
   const [path, setPath] = useState('/Users/parkhansol/workspaces/swit');
   const [ignorePatterns, setIgnorePatterns] = useState([
     'node_modules',
@@ -37,6 +39,11 @@ const Application = () => {
   const [extensions, setExtensions] = useState(['ts', 'html']);
   const [usageOutput, setUsageOutput] = useState('');
   const [duplicationOutput, setDuplicationOutput] = useState('');
+  const [duplicationInputs, setDuplicationInputs] = useState<{
+    text: string;
+    keys: string[];
+    migrateKey: string;
+  }[]>([]);
 
   const [langs, setLangs] = useState<{ json: string; }[]>([{
     json: dedent`{
@@ -125,9 +132,11 @@ const Application = () => {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setLoading(true);
+    setSearchLoading(true);
 
     const allKeys = Object.keys(langs.reduce((result, lang) => Object.assign(result, JSON.parse(lang.json || '{}')), { ...JSON.parse(langs[0].json) }));
+
+    console.log(extensions.map((ext) => `.${ext}`));
 
     try {
       const res = await window.electron.invoke('search-keywords', {
@@ -136,7 +145,7 @@ const Application = () => {
         extensions: extensions.map((ext) => `.${ext}`),
         ignorePatterns: ignorePatterns,
       });
-  
+
       setUsageOutput(JSON.stringify(
         Object.entries(res).sort((a, b) => {
           return Number(a[1]) - Number(b[1]);
@@ -158,26 +167,65 @@ const Application = () => {
         return result;
       }, {});
 
+      const sortedDuplications = Object.entries(duplicationResult).sort((a, b) => {
+        return b[1].length - a[1].length;
+      }).reduce<Record<string, string[]>>((result, current) => {
+        result[current[0]] = current[1];
+        return result;
+      }, {});
+
       setDuplicationOutput(
         JSON.stringify(
-          Object.entries(duplicationResult).sort((a, b) => {
-            return b[1].length - a[1].length;
-          }).reduce<Record<string, string[]>>((result, current) => {
-            result[current[0]] = current[1];
-            return result;
-          }, {}),
+          sortedDuplications,
           null,
           2
         )
       );
-      
+
+      setDuplicationInputs(Object.entries(sortedDuplications).filter(([, keys]) => keys.length > 1).map(([text, keys]) => {
+        return {
+          text: text,
+          keys: keys,
+          migrateKey: '',
+        }
+      }))
+
     } catch (error) {
       console.error(error);
       console.log('오류 발생!!');
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   }
+
+  const runChange = async () => {
+    const models = duplicationInputs
+      .filter((input) => input.keys.length && input.migrateKey.trim())
+      .map((input) => ({
+        keys: input.keys,
+        targetKey: input.migrateKey,
+      }));
+
+    if (!models.length) {
+      return;
+    }
+
+    setChangeLoading(true);
+
+    try {
+      await window.electron.invoke('change-key', {
+        path: path,
+        extensions: extensions.map((ext) => `.${ext}`),
+        ignorePatterns: ignorePatterns,
+        changes: models,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setChangeLoading(false);
+    }
+  };
+
 
   return (
     <div>
@@ -186,6 +234,7 @@ const Application = () => {
           <Tab label="설정" />
           <Tab label="사용율 결과" />
           <Tab label="중복율 결과" />
+          <Tab label="중복 키 전환기" />
         </Tabs>
       </Box>
       <TabPanel value={currentTab} index={0}>
@@ -201,10 +250,10 @@ const Application = () => {
           <Button
             variant="contained"
             type='submit'
-            disabled={loading}
+            disabled={seachLoading}
             style={{ marginTop: '10px' }}
           >
-            {loading ? (
+            {seachLoading ? (
               <><CircularProgress size={30} /> 대충 만들어서 느려요..</>
             ) :
               'GO'
@@ -268,6 +317,55 @@ const Application = () => {
           style={{ marginTop: '10px' }}
           onChange={setDuplicationOutput}
         />
+      </TabPanel>
+      <TabPanel value={currentTab} index={3}>
+        이곳은 번역 데이터가 모두 일치하는 키의 목록을 출력합니다.
+        <br />
+        배열에 해당하는 데이터가 많다면 중복으로 의심할 수 있습니다.
+        <br />
+        중복 결과가 많은 순서대로 정렬됩니다.
+        <br />
+        <Button
+          variant="contained"
+          disabled={changeLoading}
+          style={{ marginTop: '10px' }}
+          onClick={runChange}
+        >
+          변경 실행
+        </Button>
+        <br />
+        입력하지 않은 항목은 변경되지 않습니다.
+
+        <div>
+          {duplicationInputs.map((input, index) => {
+            return (
+              <Accordion key={input.text} TransitionProps={{ unmountOnExit: true }} >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  aria-controls="panel1a-content"
+                  id="panel1a-header"
+                >
+                  <Typography>{input.text}{input.migrateKey ? ' / Done' : ''}</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography>
+                  {input.keys.map((key) => (
+                    <React.Fragment key={key}>{key} <br /></React.Fragment>
+                  ))}
+                  </Typography>
+                  <TextField
+                    value={input.migrateKey}
+                    onChange={(e) => {
+                      const newInputs = [...duplicationInputs];
+                      newInputs[index] = { ...newInputs[index], migrateKey: e.target.value };
+                      setDuplicationInputs(newInputs);
+                    }}
+                  />
+                </AccordionDetails>
+              </Accordion>
+            )
+          })}
+        </div>
       </TabPanel>
     </div>
   );

@@ -8,7 +8,7 @@ module.exports = {
     // Create asar archive for main, renderer process files
     asar: true,
     // Set executable name
-    executableName: 'ERWT Boilerplate',
+    executableName: 'Swit Translate Tool',
     // Set application copyright
     appCopyright: 'Copyright (C) 2021 Codesbiome, Guasam',
     // Set application icon

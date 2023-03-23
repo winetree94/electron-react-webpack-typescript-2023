@@ -1,3 +1,7 @@
+const path = require('path');
+const ThreadsPlugin = require('threads-plugin');
+const ExternalsPlugin = require('webpack2-externals-plugin');
+
 module.exports = {
   /**
    * This is the main entry point for your application, it's the first file
@@ -13,5 +17,15 @@ module.exports = {
     alias: require('./webpack.aliases'),
   },
   stats: 'minimal',
-  target: 'electron-main'
+  target: 'electron-main',
+  plugins: [
+    // new ExternalsPlugin({
+    //   type: 'commonjs',
+    //   include: path.join(__dirname, 'node_modules'),
+    // }),
+    new ThreadsPlugin({
+      target: 'electron-node-worker',
+      // plugins: ['ExternalsPlugin'],
+    }),
+  ],
 };
